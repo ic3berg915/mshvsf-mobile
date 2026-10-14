@@ -1,0 +1,51 @@
+name: Gerar APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Baixar o código do repositório
+        uses: actions/checkout@v4
+
+      - name: 2. Configurar o Java (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 3. Configurar o Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 4. Baixar o núcleo FBNeo (fetch_core.sh)
+        run: |
+          if [ -f "scripts/fetch_core.sh" ]; then
+            chmod +x scripts/fetch_core.sh
+            ./scripts/fetch_core.sh
+          elif [ -f "mshvsf-android/scripts/fetch_core.sh" ]; then
+            cd mshvsf-android
+            chmod +x scripts/fetch_core.sh
+            ./scripts/fetch_core.sh
+          fi
+
+      - name: 5. Compilar o APK (Gradle)
+        run: |
+          if [ -f "gradlew" ]; then
+            chmod +x gradlew
+            ./gradlew assembleDebug --stacktrace
+          elif [ -f "mshvsf-android/gradlew" ]; then
+            cd mshvsf-android
+            chmod +x gradlew
+            ./gradlew assembleDebug --stacktrace
+          fi
+
+      - name: 6. Salvar o APK gerado para download
+        uses: actions/upload-artifact@v4
+        with:
+          name: mshvsf-apk
+          path: "**/app/build/outputs/apk/debug/*.apk"
