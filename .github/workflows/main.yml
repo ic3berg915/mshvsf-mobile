@@ -2,7 +2,7 @@ name: Gerar APK
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "*" ]
   workflow_dispatch:
 
 jobs:
@@ -10,44 +10,57 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 1. Baixar o código do repositório
+      - name: 1. Descarregar o código do repositório
         uses: actions/checkout@v4
 
-      - name: 2. Configurar o Java (JDK 17)
+      - name: 2. Verificar e extrair ficheiros do projeto
+        run: |
+          echo "=== Ficheiros encontrados na raiz do repositório ==="
+          ls -la
+          
+          ZIP_FILE=$(find . -maxdepth 2 -name "*.zip" | head -n 1)
+          if [ -n "$ZIP_FILE" ]; then
+            echo "Ficheiro ZIP encontrado: $ZIP_FILE. A extrair..."
+            unzip -o "$ZIP_FILE"
+          fi
+          
+          echo "=== Estrutura completa de pastas após verificação ==="
+          find . -maxdepth 3 -not -path '*/.*'
+
+      - name: 3. Configurar o Java (JDK 17)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 3. Extrair o ZIP (se estiver zipado)
-        run: |
-          if [ -f "mshvsf-android.zip" ]; then
-            echo "Encontrei o mshvsf-android.zip! Extraindo..."
-            unzip -o mshvsf-android.zip
-          fi
-          ls -R
-
-      - name: 4. Baixar o núcleo FBNeo (fetch_core.sh)
+      - name: 4. Descarregar o núcleo FBNeo (fetch_core.sh)
         run: |
           SCRIPT_PATH=$(find . -name "fetch_core.sh" | head -n 1)
           if [ -z "$SCRIPT_PATH" ]; then
-            echo "ERRO: Voce ainda nao subiu o mshvsf-android.zip na aba Code!"
+            echo "ERRO CRÍTICO: O ficheiro fetch_core.sh não existe no repositório!"
+            echo "Certifique-se de que fez o upload do projeto na aba Code."
             exit 1
           fi
           PROJECT_DIR=$(dirname $(dirname "$SCRIPT_PATH"))
+          echo "Diretório do projeto localizado em: $PROJECT_DIR"
           cd "$PROJECT_DIR"
           chmod +x scripts/fetch_core.sh
           ./scripts/fetch_core.sh
+          ls -la app/src/main/jniLibs/arm64-v8a/
 
-      - name: 5. Compilar o APK (Gradle)
+      - name: 5. Compilar o APK com o Gradle
         run: |
           GRADLEW_PATH=$(find . -name "gradlew" | head -n 1)
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "ERRO CRÍTICO: O ficheiro gradlew não foi encontrado!"
+            exit 1
+          fi
           PROJECT_DIR=$(dirname "$GRADLEW_PATH")
           cd "$PROJECT_DIR"
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
 
-      - name: 6. Salvar o APK gerado para download
+      - name: 6. Guardar o APK gerado nos Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: mshvsf-apk
