@@ -19,30 +19,37 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 3. Baixar o núcleo FBNeo (fetch_core.sh)
+      - name: 3. Extrair o ZIP (se estiver zipado)
         run: |
-          if [ -f "scripts/fetch_core.sh" ]; then
-            chmod +x scripts/fetch_core.sh
-            ./scripts/fetch_core.sh
-          elif [ -f "mshvsf-android/scripts/fetch_core.sh" ]; then
-            cd mshvsf-android
-            chmod +x scripts/fetch_core.sh
-            ./scripts/fetch_core.sh
+          if [ -f "mshvsf-android.zip" ]; then
+            echo "Encontrei o mshvsf-android.zip! Extraindo..."
+            unzip -o mshvsf-android.zip
           fi
+          ls -R
 
-      - name: 4. Compilar o APK (Gradle)
+      - name: 4. Baixar o núcleo FBNeo (fetch_core.sh)
         run: |
-          if [ -f "gradlew" ]; then
-            chmod +x gradlew
-            ./gradlew assembleDebug --stacktrace
-          elif [ -f "mshvsf-android/gradlew" ]; then
-            cd mshvsf-android
-            chmod +x gradlew
-            ./gradlew assembleDebug --stacktrace
+          SCRIPT_PATH=$(find . -name "fetch_core.sh" | head -n 1)
+          if [ -z "$SCRIPT_PATH" ]; then
+            echo "ERRO: Voce ainda nao subiu o mshvsf-android.zip na aba Code!"
+            exit 1
           fi
+          PROJECT_DIR=$(dirname $(dirname "$SCRIPT_PATH"))
+          cd "$PROJECT_DIR"
+          chmod +x scripts/fetch_core.sh
+          ./scripts/fetch_core.sh
 
-      - name: 5. Salvar o APK gerado para download
+      - name: 5. Compilar o APK (Gradle)
+        run: |
+          GRADLEW_PATH=$(find . -name "gradlew" | head -n 1)
+          PROJECT_DIR=$(dirname "$GRADLEW_PATH")
+          cd "$PROJECT_DIR"
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: 6. Salvar o APK gerado para download
         uses: actions/upload-artifact@v4
         with:
           name: mshvsf-apk
           path: "**/app/build/outputs/apk/debug/*.apk"
+          if-no-files-found: error
