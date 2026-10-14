@@ -19,10 +19,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 3. Configurar o Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: 4. Baixar o núcleo FBNeo (fetch_core.sh)
+      - name: 3. Baixar o núcleo FBNeo (fetch_core.sh)
         run: |
           if [ -f "scripts/fetch_core.sh" ]; then
             chmod +x scripts/fetch_core.sh
@@ -33,7 +30,7 @@ jobs:
             ./scripts/fetch_core.sh
           fi
 
-      - name: 5. Compilar o APK (Gradle)
+      - name: 4. Compilar o APK (Gradle)
         run: |
           if [ -f "gradlew" ]; then
             chmod +x gradlew
@@ -44,7 +41,7 @@ jobs:
             ./gradlew assembleDebug --stacktrace
           fi
 
-      - name: 6. Salvar o APK gerado para download
+      - name: 5. Salvar o APK gerado para download
         uses: actions/upload-artifact@v4
         with:
           name: mshvsf-apk
